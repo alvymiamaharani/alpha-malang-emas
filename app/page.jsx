@@ -26,7 +26,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@supabase/supabase-js";
-// import { motion } from "framer-motion";
+
 import {
   Menu,
   Sparkles,
@@ -947,19 +947,6 @@ function KaratDonut({ value }) {
           opacity={0.2}
           fill="none"
         />
-        {/* <motion.circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          className="text-primary"
-          stroke="currentColor"
-          fill="none"
-          initial={{ strokeDasharray: `0 ${c}` }}
-          animate={{ strokeDasharray: `${dash} ${c - dash}` }}
-          transition={{ type: "spring", stiffness: 120, damping: 20 }}
-        /> */}
       </svg>
       <div className="absolute inset-0 grid place-items-center">
         <div className="text-center">
