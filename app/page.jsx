@@ -16,7 +16,7 @@ export default function Home() {
   const features = [
     {
       icon: <Zap className="h-6 w-6" />,
-      title: "Next.js 15",
+      title: "Next.js 15 - ALPY INI",
       description:
         "Latest features with App Router and React Server Components",
     },
