@@ -342,6 +342,155 @@ const supabase =
     ? createClient(supabaseUrl, supabaseAnonKey)
     : null;
 
+// ==== TUJUAN per kriteria (ringkas dari dokumen INDIKATOR EMAS ICMI) ====
+// key: "P#|x.y" -> string tujuan
+const TUJUANS = {
+  // ===== P1 Tata Kelola =====
+  // 1.1 Regulasi & Kedaulatan — diperkaya dari dokumen indikator kedaulatan
+  "P1|1.1":
+    "Menjamin kemandirian pengambilan keputusan (bebas intervensi), konsistensi dengan hukum nasional, keterlibatan publik dalam perumusan, evaluasi berkala berbasis bukti, dan keadilan sosial dalam dampak kebijakan.",
+  // 1.2 Transparansi — publikasi, akurasi, proses terbuka, partisipasi, responsif, peran jelas, diawasi independen
+  "P1|1.2":
+    "Menjamin keterbukaan yang proaktif: publikasi informasi yang mudah diakses & akurat, proses pengambilan keputusan terbuka dengan partisipasi publik, tanggapan yang cepat, kejelasan peran & tanggung jawab, serta pengawasan independen yang efektif.",
+  // 1.3 Akuntabilitas
+  "P1|1.3":
+    "Memastikan seluruh kebijakan & sumber daya dapat dipertanggungjawabkan melalui laporan yang transparan, auditabel, dan ada tindak lanjut.",
+  // 1.4 Koordinasi & Partisipasi Publik
+  "P1|1.4":
+    "Meningkatkan efektivitas melalui koordinasi antarlembaga dan partisipasi publik agar kebijakan inklusif dan sinergis.",
+  // 1.5 Penegakan Hukum & Antikorupsi — diselaraskan dengan bagian Indeks Korupsi pada dokumen tambahan
+  "P1|1.5":
+    "Menegakkan hukum secara adil & transparan, memperkuat pencegahan korupsi (integritas SDM, SPI, pelaporan), melindungi pelapor/whistleblower, meningkatkan partisipasi publik, dan memastikan ekosistem bisnis-investasi yang bersih.",
+  // 1.6 Efektivitas & Efisiensi Pemerintahan
+  "P1|1.6":
+    "Mencapai target kinerja secara efisien, produktif, responsif, dan menyelesaikan masalah publik dengan cepat.",
+  // 1.7 Kualitas Layanan Publik
+  "P1|1.7":
+    "Menjamin layanan publik cepat, adil, konsisten, andal, dan menjangkau seluruh lapisan masyarakat.",
+  // 1.8 Transformasi Digital / E-Gov & Smart City
+  "P1|1.8":
+    "Memastikan transformasi digital/Smart City yang transparan, efisien, inklusif, aman, dan berkelanjutan.",
+  // 1.9 Kepemimpinan (Leadership)
+  "P1|1.9":
+    "Memastikan kepemimpinan visioner, berintegritas, komunikatif, dan responsif krisis untuk membangun kepercayaan publik.",
+  // 1.10 Keamanan Siber & Privasi Data
+  "P1|1.10":
+    "Menjamin keamanan siber, privasi data, regulasi jelas, dan kesiapan menghadapi ancaman siber yang tinggi.",
+  // 1.11 Keadilan & Pemerataan Layanan Publik
+  "P1|1.11":
+    "Menjamin akses layanan publik yang adil dan inklusif bagi seluruh wilayah dan kelompok rentan.",
+
+  // ===== P2 Ekonomi =====
+  // 2.1 Pertumbuhan Ekonomi & PDRB
+  "P2|2.1":
+    "Menjamin pertumbuhan ekonomi stabil, inklusif, berkelanjutan, dan berdampak pada kesejahteraan melalui diversifikasi sektor.",
+  // 2.2 Pendapatan Daerah (PAD) & Efisiensi Anggaran — diperkaya: ketersediaan, diversifikasi, keadilan, keberlanjutan, efisiensi
+  "P2|2.2":
+    "Meningkatkan PAD secara berkelanjutan melalui basis penerimaan yang tersedia & terdiversifikasi, distribusi beban yang adil, efisiensi pemungutan & belanja, serta mengurangi ketergantungan pada transfer pusat.",
+  // 2.3 Pendapatan Keluarga & Kesejahteraan — diperkaya: pertumbuhan, distribusi, kemiskinan/rentan, rata-rata, per capita
+  "P2|2.3":
+    "Meningkatkan kesejahteraan keluarga melalui pertumbuhan pendapatan yang merata, penurunan kemiskinan & kerentanan, serta perbaikan pendapatan rata-rata dan per kapita.",
+  // 2.4 Pengangguran & Ketenagakerjaan — diperkaya: TPT, tersembunyi, muda, jangka panjang, gender, pendidikan, sektor, lokasi, sumber penghasilan, relatif
+  "P2|2.4":
+    "Menurunkan pengangguran di berbagai dimensi (terbuka, tersembunyi, muda, jangka panjang) dan mengatasi kesenjangan menurut gender, pendidikan, sektor, wilayah; sekaligus memperluas pekerjaan layak & sumber penghidupan.",
+  // 2.5 Kewirausahaan & UMKM — diperkaya: jumlah usaha, omzet, tenaga kerja, inovasi, pertumbuhan
+  "P2|2.5":
+    "Mendorong pertumbuhan wirausaha & UMKM yang berdaya saing melalui peningkatan jumlah usaha, omzet, penyerapan tenaga kerja, kapabilitas inovasi, dan pertumbuhan usaha yang berkelanjutan.",
+  // 2.6 Infrastruktur Ekonomi & Digital
+  "P2|2.6":
+    "Memastikan infrastruktur fisik & digital yang memadai, merata, terjangkau, dan berkelanjutan untuk mendukung produktivitas & konektivitas.",
+  // 2.7 Pengelolaan & Keberlanjutan SDA
+  "P2|2.7":
+    "Memastikan pengelolaan sumber daya alam yang berkelanjutan, efisien, dan mendukung pertumbuhan ekonomi jangka panjang.",
+  // 2.8 Investasi & Retensi Investor
+  "P2|2.8":
+    "Meningkatkan investasi dan mempertahankan investor melalui iklim usaha yang kondusif, transparan, dan kompetitif.",
+  // 2.9 Ekspor & Akses Pasar Global
+  "P2|2.9":
+    "Memperluas akses pasar global dan meningkatkan nilai ekspor melalui produk berdaya saing dan jejaring perdagangan internasional.",
+  // 2.10 Kemiskinan & Ketimpangan (Gini, kesenjangan wilayah)
+  "P2|2.10":
+    "Menurunkan kemiskinan dan ketimpangan ekonomi melalui kebijakan inklusif dan pemerataan pembangunan antarwilayah.",
+  // 2.11 Produktivitas & Inovasi Ekonomi Lokal
+  "P2|2.11":
+    "Meningkatkan produktivitas dan inovasi ekonomi lokal melalui pemanfaatan teknologi dan penguatan kapasitas pelaku ekonomi.",
+  // 2.12 Akses & Inklusi Keuangan
+  "P2|2.12":
+    "Memperluas akses keuangan yang inklusif bagi masyarakat dan UMKM melalui layanan keuangan yang terjangkau dan inovatif.",
+  // 2.13 Ketahanan Ekonomi (pangan, harga pokok, shock)
+  "P2|2.13":
+    "Memperkuat ketahanan ekonomi melalui ketersediaan pangan, stabilitas harga pokok, dan kesiapan menghadapi guncangan ekonomi.",
+  // 2.14 Struktur Ekonomi & Diversifikasi
+  "P2|2.14":
+    "Membangun struktur ekonomi yang beragam dan tangguh untuk mendukung pertumbuhan berkelanjutan dan ketahanan jangka panjang.",
+
+  // ===== P3 Sosial =====
+  "P3|3.1":
+    "Meningkatkan akses & kualitas pendidikan serta literasi, termasuk literasi digital.",
+  "P3|3.2":
+    "Meningkatkan derajat kesehatan (AKI/AKB, stunting, harapan hidup) dengan layanan yang merata.",
+  "P3|3.3":
+    "Menjamin penghormatan hukum & HAM, kesetaraan dan perlindungan dari diskriminasi.",
+  "P3|3.4":
+    "Menjaga toleransi & kerukunan antarumat beragama dan kohesi sosial.",
+  "P3|3.5":
+    "Memajukan nilai sosial-budaya & pariwisata yang berkelanjutan & inklusif.",
+  "P3|3.6":
+    "Meningkatkan keamanan & ketertiban sosial dengan pencegahan dan respons yang efektif.",
+  "P3|3.7":
+    "Memperkuat perlindungan sosial & inklusivitas bagi kelompok rentan (termasuk disabilitas & lansia).",
+  "P3|3.8":
+    "Menyediakan fasilitas umum yang layak dan meningkatkan literasi digital masyarakat.",
+  "P3|3.9":
+    "Meningkatkan IPM melalui pendidikan, kesehatan, dan standar hidup layak.",
+  "P3|3.10":
+    "Mendorong kesetaraan gender dalam akses, partisipasi, dan hasil pembangunan.",
+  "P3|3.11":
+    "Mengelola dampak urbanisasi agar inklusif, produktif, dan berketahanan.",
+
+  // ===== P4 Lingkungan =====
+  "P4|4.1":
+    "Memperkuat adaptasi perubahan iklim (resiliensi, sistem peringatan dini, perlindungan kelompok rentan).",
+  "P4|4.2":
+    "Menurunkan emisi melalui mitigasi yang efektif di sektor kunci dan transisi energi.",
+  "P4|4.3":
+    "Meningkatkan kualitas udara melalui pengendalian sumber pencemar & pemantauan yang transparan.",
+  "P4|4.4":
+    "Menjamin kualitas & akses air bersih serta sanitasi aman dan terjangkau.",
+  "P4|4.5":
+    "Menguatkan pengelolaan sampah sirkular (reduce-reuse-recycle) dan ekonomi sirkular.",
+  "P4|4.6":
+    "Mendorong perumahan layak & berkelanjutan yang efisien sumber daya.",
+  "P4|4.7":
+    "Menambah dan merawat ruang terbuka hijau yang fungsional & inklusif.",
+  "P4|4.8": "Meningkatkan porsi energi terbarukan & efisiensi energi.",
+  "P4|4.9":
+    "Melindungi SDA & keanekaragaman hayati melalui tata kelola yang berkelanjutan.",
+
+  // ===== P5 Inovasi & Keberlanjutan =====
+  // Diselaraskan dengan "Inovasi Teknologi Berkelanjutan" pada dokumen tambahan
+  "P5|5.1":
+    "Mendorong pertumbuhan ekonomi yang berkelanjutan melalui inovasi (green economy) dengan dampak lingkungan minimal dan nilai tambah tinggi.",
+  "P5|5.2":
+    "Meningkatkan investasi R&D & pendidikan, mendorong kolaborasi lintas pihak, dan penguatan kapasitas inovasi.",
+  "P5|5.3":
+    "Memperluas keterlibatan pemangku kepentingan (pemerintah, bisnis, akademia, masyarakat) dalam ekosistem inovasi.",
+  "P5|5.4":
+    "Memastikan inovasi memberi manfaat sosial & lingkungan yang terukur (health, equity, emisi) dan meminimalkan dampak negatif.",
+  "P5|5.5":
+    "Meningkatkan efektivitas teknologi: adopsi, efisiensi produksi, keandalan, dan utilisasi nyata.",
+  "P5|5.6":
+    "Menyempurnakan kebijakan & regulasi pro-inovasi (HKI, insentif) agar ekosistem kondusif.",
+  "P5|5.7":
+    "Meningkatkan internasionalisasi inovasi (publikasi/paten global, posisi di GII) dan jejaring internasional.",
+  "P5|5.8":
+    "Mendorong inovasi digital & smart society yang inklusif, aman, dan etis.",
+  "P5|5.9":
+    "Memperkuat ekosistem startup & bisnis inovatif (pendanaan, inkubasi, pasar).",
+  "P5|5.10":
+    "Melakukan evaluasi dampak inovasi secara berkala (adopsi, kepuasan pemakai, keberlanjutan).",
+};
+
 // Helpers
 function clampScore(v) {
   return Math.max(1, Math.min(5, v));
@@ -623,7 +772,7 @@ export default function EMASMobileApp() {
                       variant="outline"
                       className="col-span-2"
                     >
-                      Reset Skor
+                      Reset Indikator
                     </Button>
                   </div>
                   {message && (
@@ -707,7 +856,7 @@ export default function EMASMobileApp() {
                     Formula: tertimbang (Prinsip × Kriteria × (opsional)
                     Indikator)
                   </p>
-                  <p>SA = Σ( wP × Σ( wC × SK ) ) • Karat = SA × (24/5)</p>
+                  <p>SA = Σ( wP × Σ( wC × IK ) ) • Karat = SA × (24/5)</p>
                 </div>
               </div>
             </SheetContent>
@@ -738,12 +887,10 @@ export default function EMASMobileApp() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="flex items-center gap-4 py-2">
+            <div className="flex items-center gap-4 py-2 justify-center">
               <KaratDonut value={result.karat} />
               <div className="space-y-1">
-                <div className="text-sm text-muted-foreground">
-                  Skor Akhir (1–5)
-                </div>
+                <div className="text-sm text-muted-foreground">Indikator</div>
                 <div className="text-2xl font-bold">{result.SA.toFixed(2)}</div>
                 <div className="text-sm text-muted-foreground">Karat (24K)</div>
                 <div className="text-xl font-semibold">
@@ -795,10 +942,57 @@ export default function EMASMobileApp() {
                       const count = indicators[key]?.length || 0;
                       return (
                         <div key={key} className="rounded-2xl border p-3">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="text-sm font-medium flex-1">
-                              {C.code} — {C.name}
-                            </div>
+                          <div className="text-sm font-medium flex-1">
+                            {C.code} {C.name}
+                          </div>
+                          <div className="flex flex-wrap items-center justify-start mt-4 gap-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="ml-2"
+                                >
+                                  Tujuan
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle>
+                                    Tujuan — {C.code} {C.name}
+                                  </DialogTitle>
+                                </DialogHeader>
+                                <div className="text-sm text-muted-foreground leading-relaxed">
+                                  {TUJUANS[key] ||
+                                    "Tujuan belum tersedia untuk kriteria ini."}
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-2"
+                                >
+                                  Rubrik
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle>
+                                    Rubrik Indikator — {C.code} {C.name}
+                                  </DialogTitle>
+                                </DialogHeader>
+                                <RubricBody
+                                  rubricKey={key}
+                                  value={val}
+                                  onPick={(v) =>
+                                    setScores({ ...scores, [key]: v })
+                                  }
+                                />
+                              </DialogContent>
+                            </Dialog>
                             <div className="flex items-center gap-2">
                               {count > 0 && (
                                 <Badge
@@ -808,31 +1002,6 @@ export default function EMASMobileApp() {
                                   {count} indikator
                                 </Badge>
                               )}
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="gap-2"
-                                  >
-                                    Rubrik
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-md">
-                                  <DialogHeader>
-                                    <DialogTitle>
-                                      Rubrik Skor — {C.code} {C.name}
-                                    </DialogTitle>
-                                  </DialogHeader>
-                                  <RubricBody
-                                    rubricKey={key}
-                                    value={val}
-                                    onPick={(v) =>
-                                      setScores({ ...scores, [key]: v })
-                                    }
-                                  />
-                                </DialogContent>
-                              </Dialog>
                               <Dialog>
                                 <DialogTrigger asChild>
                                   <Button
@@ -886,7 +1055,7 @@ export default function EMASMobileApp() {
                                           <div className="mt-2 grid grid-cols-2 gap-2">
                                             <div>
                                               <Label className="text-xs">
-                                                Skor (1–5)
+                                                Indikator (1–5)
                                               </Label>
                                               <div className="flex items-center gap-2">
                                                 <Slider
@@ -966,7 +1135,7 @@ export default function EMASMobileApp() {
                                   </div>
                                   <DialogFooter>
                                     <div className="text-xs text-muted-foreground">
-                                      Rumus SK: Σ( wInd_norm × SI )
+                                      Rumus IK: Σ( wInd_norm × SI )
                                     </div>
                                   </DialogFooter>
                                 </DialogContent>
@@ -985,7 +1154,7 @@ export default function EMASMobileApp() {
                                 setScores({ ...scores, [key]: v[0] })
                               }
                               className="flex-1"
-                              aria-label={`Skor ${C.name}`}
+                              aria-label={`Indikator ${C.name}`}
                               disabled={hasIndicators}
                             />
                             <Input
@@ -1011,8 +1180,8 @@ export default function EMASMobileApp() {
                             </span>
                             <span>
                               {hasIndicators
-                                ? "Menggunakan skor indikator"
-                                : "Menggunakan skor kriteria"}
+                                ? "Menggunakan indikator"
+                                : "Menggunakan indikator kriteria"}
                             </span>
                           </div>
                         </div>
@@ -1020,7 +1189,7 @@ export default function EMASMobileApp() {
                     })}
                   </div>
                   <div className="pt-1 text-xs text-muted-foreground">
-                    Skor Prinsip (SP):{" "}
+                    Indikator Prinsip (SP):{" "}
                     {result.perPrinciple[P.code]?.SP?.toFixed(2)} • Karat:{" "}
                     {result.perPrinciple[P.code]?.karat?.toFixed(2)}K
                   </div>
