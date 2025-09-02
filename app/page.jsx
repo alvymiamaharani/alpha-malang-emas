@@ -1309,7 +1309,7 @@ function RubricBody({ rubricKey, value, onPick }) {
                 >
                   <RadioGroupItem value={String(s)} />
                   <div>
-                    <div className="text-sm font-medium">Skor {s}</div>
+                    <div className="text-sm font-medium">Indikator {s}</div>
                     <div className="text-xs text-muted-foreground leading-relaxed">
                       {desc}
                     </div>
@@ -1323,7 +1323,7 @@ function RubricBody({ rubricKey, value, onPick }) {
       <DialogFooter>
         <DialogClose asChild>
           <Button onClick={() => onPick(value)} variant="default">
-            Gunakan Skor {value}
+            Gunakan Indikator {value}
           </Button>
         </DialogClose>
       </DialogFooter>
