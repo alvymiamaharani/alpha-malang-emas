@@ -1,6 +1,9 @@
+/** biome-ignore-all lint/a11y/noLabelWithoutControl: <explanation> */
+/** biome-ignore-all lint/a11y/noSvgWithoutTitle: <explanation> */
+/** biome-ignore-all lint/suspicious/noGlobalIsNan: <explanation> */
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -581,6 +584,7 @@ export default function EMASMobileApp() {
   const [message, setMessage] = useState("");
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [openRubricDialog, setOpenRubricDialog] = useState(null);
 
   const result = useMemo(
     () => computeScores(weights, scores, indicators),
@@ -887,7 +891,7 @@ export default function EMASMobileApp() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="flex items-center gap-4 py-2 justify-center">
+            <div className="flex items-center gap-4 py-2 justify-start">
               <KaratDonut value={result.karat} />
               <div className="space-y-1">
                 <div className="text-sm text-muted-foreground">Indikator</div>
@@ -940,6 +944,7 @@ export default function EMASMobileApp() {
                       const val =
                         typeof scores[key] === "number" ? scores[key] : 3; // default mid
                       const count = indicators[key]?.length || 0;
+                      const rubricDialogRef = useRef(null);
                       return (
                         <div key={key} className="rounded-2xl border p-3">
                           <div className="text-sm font-medium flex-1">
@@ -968,7 +973,12 @@ export default function EMASMobileApp() {
                                 </div>
                               </DialogContent>
                             </Dialog>
-                            <Dialog>
+                            <Dialog
+                              open={openRubricDialog === key}
+                              onOpenChange={(isOpen) =>
+                                setOpenRubricDialog(isOpen ? key : null)
+                              }
+                            >
                               <DialogTrigger asChild>
                                 <Button
                                   size="sm"
@@ -987,9 +997,10 @@ export default function EMASMobileApp() {
                                 <RubricBody
                                   rubricKey={key}
                                   value={val}
-                                  onPick={(v) =>
-                                    setScores({ ...scores, [key]: v })
-                                  }
+                                  onPick={(v) => {
+                                    setScores({ ...scores, [key]: v });
+                                    setOpenRubricDialog(null);
+                                  }}
                                 />
                               </DialogContent>
                             </Dialog>
@@ -1002,144 +1013,6 @@ export default function EMASMobileApp() {
                                   {count} indikator
                                 </Badge>
                               )}
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="gap-2"
-                                  >
-                                    <ListOrdered className="h-4 w-4" />{" "}
-                                    Indikator
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-md">
-                                  <DialogHeader>
-                                    <DialogTitle>
-                                      {C.code} — {C.name}
-                                    </DialogTitle>
-                                  </DialogHeader>
-                                  <div className="space-y-3">
-                                    <div className="text-xs text-muted-foreground">
-                                      Isi indikator bila ingin penilaian lebih
-                                      rinci. Jika kosong, nilai kriteria
-                                      (slider) dipakai.
-                                    </div>
-                                    <div className="space-y-2">
-                                      {(indicators[key] || []).map((it) => (
-                                        <div
-                                          key={it.id}
-                                          className="rounded-lg border p-2"
-                                        >
-                                          <div className="flex items-center gap-2">
-                                            <Input
-                                              value={it.name}
-                                              onChange={(e) =>
-                                                updateIndicator(key, it.id, {
-                                                  name: e.target.value,
-                                                })
-                                              }
-                                              className="flex-1"
-                                            />
-                                            <Button
-                                              size="icon"
-                                              variant="ghost"
-                                              onClick={() =>
-                                                removeIndicator(key, it.id)
-                                              }
-                                              aria-label="hapus"
-                                            >
-                                              <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                          </div>
-                                          <div className="mt-2 grid grid-cols-2 gap-2">
-                                            <div>
-                                              <Label className="text-xs">
-                                                Indikator (1–5)
-                                              </Label>
-                                              <div className="flex items-center gap-2">
-                                                <Slider
-                                                  min={1}
-                                                  max={5}
-                                                  step={0.5}
-                                                  value={[it.score]}
-                                                  onValueChange={(v) =>
-                                                    updateIndicator(
-                                                      key,
-                                                      it.id,
-                                                      {
-                                                        score: clampScore(v[0]),
-                                                      },
-                                                    )
-                                                  }
-                                                  className="flex-1"
-                                                />
-                                                <Input
-                                                  type="number"
-                                                  className="w-20"
-                                                  min={1}
-                                                  max={5}
-                                                  step={0.5}
-                                                  value={it.score}
-                                                  onChange={(e) =>
-                                                    updateIndicator(
-                                                      key,
-                                                      it.id,
-                                                      {
-                                                        score: clampScore(
-                                                          parseFloat(
-                                                            e.target.value ||
-                                                              "0",
-                                                          ),
-                                                        ),
-                                                      },
-                                                    )
-                                                  }
-                                                />
-                                              </div>
-                                            </div>
-                                            <div>
-                                              <Label className="text-xs">
-                                                Bobot
-                                              </Label>
-                                              <Input
-                                                type="number"
-                                                step={0.1}
-                                                value={it.weight}
-                                                onChange={(e) =>
-                                                  updateIndicator(key, it.id, {
-                                                    weight: Math.max(
-                                                      0,
-                                                      parseFloat(
-                                                        e.target.value || "0",
-                                                      ),
-                                                    ),
-                                                  })
-                                                }
-                                              />
-                                              <p className="text-[10px] text-muted-foreground mt-1">
-                                                Bobot akan dinormalisasi
-                                                otomatis
-                                              </p>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                    <Button
-                                      onClick={() => addIndicator(key)}
-                                      variant="secondary"
-                                    >
-                                      Tambah Indikator
-                                    </Button>
-                                  </div>
-                                  <DialogFooter>
-                                    <div className="text-xs text-muted-foreground">
-                                      Rumus IK: Σ( wInd_norm × SI )
-                                    </div>
-                                  </DialogFooter>
-                                </DialogContent>
-                              </Dialog>
                             </div>
                           </div>
 
@@ -1148,11 +1021,13 @@ export default function EMASMobileApp() {
                             <Slider
                               min={1}
                               max={5}
-                              step={0.5}
+                              step={1}
                               value={[val]}
-                              onValueChange={(v) =>
-                                setScores({ ...scores, [key]: v[0] })
-                              }
+                              onValueChange={(v) => {
+                                setScores({ ...scores, [key]: v[0] });
+                                setOpenRubricDialog(key); // Open rubric dialog
+                                rubricDialogRef.current?.click(); // Programmatically trigger dialog
+                              }}
                               className="flex-1"
                               aria-label={`Indikator ${C.name}`}
                               disabled={hasIndicators}
@@ -1162,7 +1037,7 @@ export default function EMASMobileApp() {
                               className="w-20"
                               min={1}
                               max={5}
-                              step={0.5}
+                              step={1}
                               value={val}
                               onChange={(e) => {
                                 const n = parseFloat(e.target.value || "0");
@@ -1170,6 +1045,8 @@ export default function EMASMobileApp() {
                                   ...scores,
                                   [key]: clampScore(isNaN(n) ? 3 : n),
                                 });
+                                setOpenRubricDialog(key); // Open rubric dialog
+                                rubricDialogRef.current?.click(); // Programmatically trigger dialog
                               }}
                               disabled={hasIndicators}
                             />
