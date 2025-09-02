@@ -1,6 +1,3 @@
-/** biome-ignore-all lint/a11y/noLabelWithoutControl: <explanation> */
-/** biome-ignore-all lint/a11y/noSvgWithoutTitle: <explanation> */
-/** biome-ignore-all lint/suspicious/noGlobalIsNan: <explanation> */
 "use client";
 
 import React, { useMemo, useState, useEffect, useRef } from "react";
