@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { createClient } from "@supabase/supabase-js";
 import { motion } from "framer-motion";
 import {
@@ -43,6 +45,124 @@ import {
   History,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+
+// ============= Rubrics =============
+const RUBRICS = {
+  // P1 — contoh lengkap
+  "P1|1.1": [
+    "Regulasi dipengaruhi pihak luar, tidak jelas, tanpa uji publik, tidak ada evaluasi.",
+    "Regulasi sebagian mandiri; pengaruh luar dominan; analisis dampak minim.",
+    "Cukup mandiri; ada analisis & standar; evaluasi belum konsisten.",
+    "Hampir seluruhnya mandiri, berbasis kepentingan nasional; evaluasi sebagian besar.",
+    "Sepenuhnya mandiri, sesuai standar hukum, transparan, dievaluasi berkala & berdampak positif.",
+  ],
+  "P1|1.2": [
+    "Informasi tidak tersedia/sulit diakses; prosedur tidak ada/sangat rumit; tanpa digital.",
+    "Informasi sebagian; sering tidak akurat/usang; akses terbatas; prosedur membingungkan.",
+    "Cukup lengkap & akurat; prosedur jelas namun belum ramah; pemanfaatan digital terbatas.",
+    "Lengkap, akurat, update; prosedur mudah; portal digital interaktif.",
+    "Lengkap real-time; prosedur sederhana & ramah; open data standar internasional & aplikasi mobile.",
+  ],
+  "P1|1.3": [
+    "Tidak ada laporan/audit; pengaduan tidak ditindaklanjuti.",
+    "Ada laporan namun tidak lengkap & belum diaudit independen; tindak lanjut minim.",
+    "Laporan rutin; sebagian besar diaudit; tindak lanjut belum konsisten; akses publik terbatas.",
+    "Laporan lengkap, rutin diaudit; rekomendasi sebagian besar ditindaklanjuti; pengaduan efektif.",
+    "Laporan lengkap, opini WTP/setara; semua rekomendasi ditindaklanjuti; pengaduan cepat & transparan.",
+  ],
+  "P1|1.4": [
+    "Koordinasi & partisipasi hampir tidak ada; kebijakan sepihak.",
+    "Koordinasi seremonial; partisipasi minim.",
+    "Koordinasi cukup namun belum konsisten; partisipasi ada (Musrenbang) tapi belum nyata di kebijakan.",
+    "Koordinasi jelas & rutin; partisipasi aktif; masukan publik diakomodasi.",
+    "Koordinasi efektif & adaptif (termasuk krisis); partisipasi luas & memengaruhi arah kebijakan.",
+  ],
+  "P1|1.5": [
+    "Penegakan hukum tidak adil; kasus korupsi tak ditindak; tak ada perlindungan pelapor.",
+    "Upaya ada tapi bias; sebagian kasus ditangani; perlindungan pelapor lemah.",
+    "Cukup adil & transparan; sebagian besar kasus ditindak; pengawasan publik belum optimal.",
+    "Konsisten, adil, transparan; mayoritas kasus berhasil; ada perlindungan pelapor; partisipasi publik aktif.",
+    "Sepenuhnya adil & terpercaya; keberhasilan tinggi; perlindungan penuh; pengawasan publik luas.",
+  ],
+  "P1|1.6": [
+    "Target tak tercapai; boros; produktivitas rendah; masalah publik tak terselesaikan.",
+    "Sebagian target tercapai dengan inefisiensi; penyelesaian lambat.",
+    "Sebagian besar target tercapai; cukup efisien; penyelesaian belum konsisten.",
+    "Hampir semua target tercapai; efisien; produktif; penyelesaian tepat waktu.",
+    "Semua target tercapai; sangat efisien; inovatif; penyelesaian cepat & berkelanjutan.",
+  ],
+  "P1|1.7": [
+    "Layanan tidak memadai; keluhan tinggi; respon lambat; jangkauan sempit.",
+    "Layanan tersedia tapi kualitas rendah; respon lambat; jangkauan terbatas.",
+    "Layanan memadai; respon cukup cepat; keluhan sebagian besar ditangani; jangkauan belum merata.",
+    "Layanan baik; respon cepat & konsisten; kepuasan tinggi; jangkauan hampir menyeluruh.",
+    "Layanan sangat berkualitas, adil, responsif & inklusif; keluhan tuntas; jangkauan merata.",
+  ],
+  "P1|1.8": [
+    "Hampir tak ada layanan digital; data tertutup; literasi sangat rendah; keamanan nihil.",
+    "Sebagian layanan online terbatas; data terfragmentasi; literasi rendah; keamanan minim.",
+    "Sebagian besar layanan online; integrasi sebagian; big data untuk analisis dasar; perlindungan data dasar.",
+    "Terintegrasi lintas sektor; big data & AI untuk prediksi; literasi tinggi; keamanan kuat.",
+    "Smart gov/city penuh; AI/IoT real-time & aman; literasi sangat tinggi; privasi setara standar internasional.",
+  ],
+  "P1|1.9": [
+    "Visi tak jelas; komunikasi buruk; keputusan lambat; integritas rendah; kepercayaan publik sangat rendah.",
+    "Visi ada tapi tidak terarah; keputusan tak konsisten; partisipasi minim.",
+    "Visi cukup jelas; komunikasi ada; keputusan cukup cepat; integritas baik; kepercayaan sedang.",
+    "Visi jelas & konsisten; keputusan cepat & tepat; integritas kuat; partisipasi didorong; kepercayaan tinggi.",
+    "Visioner, komunikatif, responsif krisis; keputusan berbasis data; integritas tinggi; kepercayaan sangat tinggi.",
+  ],
+  "P1|1.10": [
+    "Tak ada regulasi keamanan siber/privasi; perlindungan lemah; sangat rentan.",
+    "Regulasi dasar ada; implementasi lemah; perlindungan parsial; kesiapan terbatas.",
+    "Regulasi cukup jelas; unit khusus ada; perlindungan berjalan namun belum menyeluruh.",
+    "Regulasi kuat & konsisten; perlindungan menyeluruh; respons cepat; kepercayaan publik naik.",
+    "Setara standar internasional; perlindungan penuh; kesiapan sangat tinggi; kepercayaan publik/internasional tinggi.",
+  ],
+  "P1|1.11": [
+    "Akses sangat timpang; kelompok rentan & wilayah tertinggal tak terlayani; kualitas rendah.",
+    "Akses mulai ada namun tak merata; kelompok rentan terlayani kecil; wilayah tertinggal tertinggal.",
+    "Akses cukup luas; kelompok rentan sebagian besar terlayani; wilayah tertinggal mendapat layanan dasar.",
+    "Akses tinggi & merata; kelompok rentan hampir penuh; kualitas baik; kesenjangan kecil.",
+    "Akses sepenuhnya merata & inklusif; kualitas setara; kesenjangan mendekati nol.",
+  ],
+  // P2 — sebagian contoh
+  "P2|2.1": [
+    "Pertumbuhan negatif/sangat rendah; PDRB stagnan; ketergantungan 1 sektor; tak berdampak pada kesejahteraan.",
+    "Pertumbuhan <3%; ketergantungan sektor masih dominan; manfaat terbatas.",
+    "Pertumbuhan 3–5%; diversifikasi mulai; manfaat sebagian.",
+    "Pertumbuhan 5–6%; diversifikasi kuat; manfaat mayoritas.",
+    ">6% berkelanjutan; diversifikasi baik; manfaat merata & signifikan.",
+  ],
+  "P2|2.2": [
+    "PAD sangat rendah; tergantung pusat; anggaran tidak efisien; kebocoran tinggi.",
+    "PAD meningkat terbatas; ketergantungan masih dominan; efisiensi rendah.",
+    "PAD moderat; ketergantungan turun; efisiensi sedang.",
+    "PAD signifikan (>30%); anggaran efisien; kebocoran rendah.",
+    "PAD dominan (>50%); sangat efisien & transparan; kebocoran sangat rendah.",
+  ],
+  "P2|2.3": [
+    "Pendapatan keluarga sangat rendah; kemiskinan tinggi; daya beli lemah; kebutuhan dasar tak terpenuhi.",
+    "Pendapatan naik terbatas; kemiskinan sedikit turun; akses dasar belum merata.",
+    "Pendapatan stabil; kemiskinan turun moderat; kebutuhan dasar sebagian besar terpenuhi.",
+    "Pendapatan tinggi; kemiskinan rendah; kebutuhan dasar tercukupi baik.",
+    "Pendapatan sangat tinggi & merata; kemiskinan <5%; akses penuh ke kebutuhan dasar.",
+  ],
+  "P2|2.4": [
+    ">10% pengangguran; pelatihan tak ada; pekerjaan tidak layak.",
+    "7–10% pengangguran; pelatihan minim; pekerjaan banyak tak layak.",
+    "5–7%; pelatihan menjangkau sebagian; pekerjaan layak belum merata.",
+    "3–5%; pelatihan relevan; mayoritas pekerjaan layak.",
+    "<3%; pelatihan masif & inklusif; hampir seluruhnya pekerjaan layak.",
+  ],
+  "P2|2.6": [
+    "Jalan/listrik/internet/logistik sangat terbatas; wilayah terisolasi.",
+    "Tersedia namun kualitas rendah & tak merata; hambatan besar ekonomi.",
+    "Cukup memadai; internet menjangkau luas tapi belum merata; ekonomi relatif lancar.",
+    "Baik & merata; internet berkualitas luas; hambatan sangat berkurang.",
+    "Modern, terintegrasi & berkelanjutan hingga terpencil; dukung penuh ekonomi digital.",
+  ],
+};
 
 // Default Weights — aligned with policy design
 const DEFAULT_WEIGHTS = [
@@ -695,6 +815,31 @@ export default function EMASMobileApp() {
                                     variant="outline"
                                     className="gap-2"
                                   >
+                                    Rubrik
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-md">
+                                  <DialogHeader>
+                                    <DialogTitle>
+                                      Rubrik Skor — {C.code} {C.name}
+                                    </DialogTitle>
+                                  </DialogHeader>
+                                  <RubricBody
+                                    rubricKey={key}
+                                    value={val}
+                                    onPick={(v) =>
+                                      setScores({ ...scores, [key]: v })
+                                    }
+                                  />
+                                </DialogContent>
+                              </Dialog>
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-2"
+                                  >
                                     <ListOrdered className="h-4 w-4" />{" "}
                                     Indikator
                                   </Button>
@@ -967,6 +1112,52 @@ function KaratDonut({ value }) {
           <div className="text-lg font-bold">{value.toFixed(1)}K</div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function RubricBody({ rubricKey, value, onPick }) {
+  const items = RUBRICS[rubricKey];
+  return (
+    <div className="space-y-3">
+      {!items ? (
+        <div className="text-sm text-muted-foreground">
+          Rubrik belum terdefinisi untuk kriteria ini. Silakan gunakan slider
+          atau tambahkan indikator.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <RadioGroup
+            value={String(value)}
+            onValueChange={(v) => onPick(Number(v))}
+          >
+            {items.map((desc, idx) => {
+              const s = idx + 1;
+              return (
+                <label
+                  key={s}
+                  className="flex items-start gap-3 rounded-lg border p-2 cursor-pointer"
+                >
+                  <RadioGroupItem value={String(s)} />
+                  <div>
+                    <div className="text-sm font-medium">Skor {s}</div>
+                    <div className="text-xs text-muted-foreground leading-relaxed">
+                      {desc}
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </RadioGroup>
+        </div>
+      )}
+      <DialogFooter>
+        <DialogClose asChild>
+          <Button onClick={() => onPick(value)} variant="default">
+            Gunakan Skor {value}
+          </Button>
+        </DialogClose>
+      </DialogFooter>
     </div>
   );
 }
