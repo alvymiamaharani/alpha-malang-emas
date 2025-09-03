@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Malang Emas",
-  description: "Malang Emas",
+  title: "Malang Emas - ICMI",
+  description: "Malang Emas by ICMI (Ikatan Cendikiawan Muslim se-Indonesia",
 };
 
 export default function RootLayout({ children }) {

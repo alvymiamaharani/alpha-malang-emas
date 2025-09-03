@@ -43,6 +43,7 @@ import {
   ListOrdered,
   Trash2,
   History,
+  ArrowRightCircle,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -1133,7 +1134,7 @@ export default function EMASMobileApp() {
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [openRubricDialog, setOpenRubricDialog] = useState(null);
-
+  const [activeTab, setActiveTab] = useState("P1");
   const result = useMemo(
     () => computeScores(weights, scores, indicators),
     [weights, scores, indicators],
@@ -1454,7 +1455,7 @@ export default function EMASMobileApp() {
         </Card>
 
         {/* Tabs per principle */}
-        <Tabs defaultValue="P1" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid grid-cols-5 w-full h-fit px-1.5 py-1">
             <TabsTrigger value="P1" aria-label="Tata Kelola">
               <ShieldCheck className="h-4 w-4" />
@@ -1621,6 +1622,21 @@ export default function EMASMobileApp() {
                     Indikator Prinsip (SP):{" "}
                     {result.perPrinciple[P.code]?.SP?.toFixed(2)} • Karat:{" "}
                     {result.perPrinciple[P.code]?.karat?.toFixed(2)}K
+                  </div>
+                  <div className="flex justify-end">
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      onClick={() => {
+                        const currentIndex = weights.findIndex(
+                          (w) => w.code === P.code,
+                        );
+                        const nextIndex = (currentIndex + 1) % weights.length;
+                        setActiveTab(weights[nextIndex].code);
+                      }}
+                    >
+                      <ArrowRightCircle className="h-4 w-4" /> Selanjutnya
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
