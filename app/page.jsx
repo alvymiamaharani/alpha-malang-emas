@@ -46,6 +46,7 @@ import {
   ArrowRightCircle,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import Image from "next/image";
 
 // ============= Rubrics =============
 const RUBRICS = {
@@ -1277,14 +1278,23 @@ export default function EMASMobileApp() {
             <SheetContent side="left" className="w-[85vw] sm:w-80">
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5" /> EMAS Mobile
+                  <div className="flex items-center gap-2">
+                    <Image
+                      src="/logo-icmi.png"
+                      alt="logo"
+                      width={60}
+                      height={40}
+                      className="mt-2"
+                    ></Image>
+                    <div className="text-base font-semibold">
+                      Standarisasi EMAS ICMI
+                    </div>
+                  </div>
                 </SheetTitle>
               </SheetHeader>
               <div className="mt-4 space-y-4 text-sm mx-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">
-                    Email (untuk penyimpanan Supabase)
-                  </Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     placeholder="nama@contoh.com"
@@ -1417,8 +1427,16 @@ export default function EMASMobileApp() {
 
           <div className="flex-1 flex justify-between  items-center gap-2">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
-              <div className="text-base font-semibold">EMAS Mobile</div>
+              <Image
+                src="/logo-icmi.png"
+                alt="logo"
+                width={60}
+                height={40}
+                className="mt-2"
+              ></Image>
+              <div className="text-base font-semibold">
+                Standarisasi EMAS ICMI
+              </div>
             </div>
             <ThemeToggle />
           </div>
@@ -1633,6 +1651,7 @@ export default function EMASMobileApp() {
                         );
                         const nextIndex = (currentIndex + 1) % weights.length;
                         setActiveTab(weights[nextIndex].code);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
                       }}
                     >
                       <ArrowRightCircle className="h-4 w-4" /> Selanjutnya
