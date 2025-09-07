@@ -1144,17 +1144,51 @@ export default function EMASDesktopApp() {
       setMessage("Masukkan email Anda terlebih dahulu.");
       return;
     }
+
     setSaving(true);
+
     try {
       const payload = { title, weights, scores, indicators, result };
-      const { error } = await supabase
+
+      // 1. Cek apakah sudah ada
+      const { data: existing, error: selectError } = await supabase
         .from("assessments")
-        .insert({ user_email: email, title, payload });
-      if (error) throw error;
-      setMessage("Berhasil tersimpan ke Supabase");
+        .select("id") // ambil id aja biar ringan
+        .eq("user_email", email)
+        .eq("title", title)
+        .maybeSingle(); // biar dapat null kalau tidak ada
+
+      if (selectError) throw selectError;
+
+      if (existing) {
+        // 2a. Update kalau sudah ada
+        const { error: updateError } = await supabase
+          .from("assessments")
+          .update({ payload, updated_at: new Date().toISOString() })
+          .eq("id", existing.id);
+
+        if (updateError) throw updateError;
+
+        setMessage("Berhasil diupdate di Supabase");
+      } else {
+        // 2b. Insert kalau belum ada
+        const { error: insertError } = await supabase
+          .from("assessments")
+          .insert({
+            user_email: email,
+            title,
+            payload,
+            created_at: new Date().toISOString(),
+          });
+
+        if (insertError) throw insertError;
+
+        setMessage("Berhasil disimpan ke Supabase");
+      }
     } catch (e) {
       setMessage(`Gagal menyimpan: ${e?.message || e}`);
     } finally {
+      loadHistory();
       setSaving(false);
     }
   }

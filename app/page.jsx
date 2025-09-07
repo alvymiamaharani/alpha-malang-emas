@@ -1147,10 +1147,59 @@ function EMASMobileApp() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [openRubricDialog, setOpenRubricDialog] = useState(null);
   const [activeTab, setActiveTab] = useState("P1");
+  const [isLoadingLatest, setIsLoadingLatest] = useState(false);
+  const [currentAssessmentId, setCurrentAssessmentId] = useState(null);
   const result = useMemo(
     () => computeScores(weights, scores, indicators),
     [weights, scores, indicators],
   );
+
+  // Auto-load latest data when email changes
+  useEffect(() => {
+    if (email && supabase) {
+      const loadLatest = async () => {
+        setIsLoadingLatest(true);
+        try {
+          const { data, error } = await supabase
+            .from("assessments")
+            .select("id, title, created_at, payload")
+            .eq("user_email", email)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single();
+
+          if (error && error.code !== "PGRST116") {
+            throw error;
+          }
+
+          if (data) {
+            const payload = data.payload || {};
+            setCurrentAssessmentId(data.id);
+            setScores(payload.scores || {});
+            setIndicators(payload.indicators || {});
+            if (payload.weights) setWeights(payload.weights);
+            setTitle(payload.title || data.title || "Penilaian EMAS");
+            setMessage("Data terbaru dimuat untuk email ini.");
+          } else {
+            setCurrentAssessmentId(null);
+            setScores({});
+            setIndicators({});
+            setWeights(DEFAULT_WEIGHTS);
+            setTitle("Penilaian EMAS");
+            setMessage(
+              "Tidak ada data sebelumnya untuk email ini. Mulai penilaian baru.",
+            );
+          }
+        } catch (e) {
+          setMessage(`Gagal memuat data terbaru: ${e?.message || e}`);
+        } finally {
+          setIsLoadingLatest(false);
+        }
+      };
+
+      loadLatest();
+    }
+  }, [email]);
 
   async function saveToSupabase() {
     setMessage("");
@@ -1162,17 +1211,51 @@ function EMASMobileApp() {
       setMessage("Masukkan email Anda terlebih dahulu.");
       return;
     }
+
     setSaving(true);
+
     try {
       const payload = { title, weights, scores, indicators, result };
-      const { error } = await supabase
+
+      // 1. Cek apakah sudah ada
+      const { data: existing, error: selectError } = await supabase
         .from("assessments")
-        .insert({ user_email: email, title, payload });
-      if (error) throw error;
-      setMessage("Berhasil tersimpan ke Supabase");
+        .select("id") // ambil id aja biar ringan
+        .eq("user_email", email)
+        .eq("title", title)
+        .maybeSingle(); // biar dapat null kalau tidak ada
+
+      if (selectError) throw selectError;
+
+      if (existing) {
+        // 2a. Update kalau sudah ada
+        const { error: updateError } = await supabase
+          .from("assessments")
+          .update({ payload, updated_at: new Date().toISOString() })
+          .eq("id", existing.id);
+
+        if (updateError) throw updateError;
+
+        setMessage("Berhasil diupdate di Supabase");
+      } else {
+        // 2b. Insert kalau belum ada
+        const { error: insertError } = await supabase
+          .from("assessments")
+          .insert({
+            user_email: email,
+            title,
+            payload,
+            created_at: new Date().toISOString(),
+          });
+
+        if (insertError) throw insertError;
+
+        setMessage("Berhasil disimpan ke Supabase");
+      }
     } catch (e) {
       setMessage(`Gagal menyimpan: ${e?.message || e}`);
     } finally {
+      loadHistory();
       setSaving(false);
     }
   }
@@ -1212,6 +1295,14 @@ function EMASMobileApp() {
         .eq("id", id);
       if (error) throw error;
       setHistory((h) => h.filter((x) => x.id !== id));
+      if (id === currentAssessmentId) {
+        setCurrentAssessmentId(null); // Reset if deleting current assessment
+        setScores({});
+        setIndicators({});
+        setWeights(DEFAULT_WEIGHTS);
+        setTitle("Penilaian EMAS");
+        setMessage("Penilaian dihapus. Mulai penilaian baru.");
+      }
     } catch (e) {
       setMessage("Gagal menghapus entri.");
     }
@@ -1227,6 +1318,7 @@ function EMASMobileApp() {
             scores,
             indicators,
             result,
+            assessment_id: currentAssessmentId, // Include ID in export
             exported_at: new Date().toISOString(),
           },
           null,
@@ -1238,7 +1330,7 @@ function EMASMobileApp() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${safeName(title)}_EMAS.json`;
+    a.download = `${safeName(title)}_EMAS_${currentAssessmentId || "new"}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -1246,6 +1338,9 @@ function EMASMobileApp() {
   function resetScores() {
     setScores({});
     setIndicators({});
+    setCurrentAssessmentId(null); // Reset ID for new assessment
+    setTitle("Penilaian EMAS");
+    setMessage("Data direset. Mulai penilaian baru.");
   }
 
   function addIndicator(critKey) {
@@ -1354,6 +1449,11 @@ function EMASMobileApp() {
                       {message}
                     </p>
                   )}
+                  {isLoadingLatest && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Memuat data terbaru...
+                    </p>
+                  )}
                 </div>
 
                 <Separator />
@@ -1399,11 +1499,13 @@ function EMASMobileApp() {
                                 variant="secondary"
                                 onClick={() => {
                                   const payload = row.payload || {};
+                                  setCurrentAssessmentId(row.id);
                                   setScores(payload.scores || {});
                                   setIndicators(payload.indicators || {});
                                   if (payload.weights)
                                     setWeights(payload.weights);
                                   setTitle(payload.title || row.title || title);
+                                  setMessage("Data dimuat dari riwayat.");
                                 }}
                               >
                                 Muat
@@ -1436,7 +1538,7 @@ function EMASMobileApp() {
             </SheetContent>
           </Sheet>
 
-          <div className="flex-1 flex justify-between  items-center gap-2">
+          <div className="flex-1 flex justify-between items-center gap-2">
             <div className="flex items-center gap-1">
               <Image
                 src="/logo-icmi.png"
@@ -1523,7 +1625,7 @@ function EMASMobileApp() {
                       const key = `${P.code}|${C.code}`;
                       const hasIndicators = (indicators[key]?.length || 0) > 0;
                       const val =
-                        typeof scores[key] === "number" ? scores[key] : 3; // default mid
+                        typeof scores[key] === "number" ? scores[key] : 3;
                       const count = indicators[key]?.length || 0;
                       const rubricDialogRef = useRef(null);
                       return (
@@ -1610,8 +1712,8 @@ function EMASMobileApp() {
                               value={[val]}
                               onValueChange={(v) => {
                                 setScores({ ...scores, [key]: v[0] });
-                                setOpenRubricDialog(key); // Open rubric dialog
-                                rubricDialogRef.current?.click(); // Programmatically trigger dialog
+                                setOpenRubricDialog(key);
+                                rubricDialogRef.current?.click();
                               }}
                               className="flex-1"
                               aria-label={`Indikator ${C.name}`}
@@ -1630,8 +1732,8 @@ function EMASMobileApp() {
                                   ...scores,
                                   [key]: clampScore(isNaN(n) ? 3 : n),
                                 });
-                                setOpenRubricDialog(key); // Open rubric dialog
-                                rubricDialogRef.current?.click(); // Programmatically trigger dialog
+                                setOpenRubricDialog(key);
+                                rubricDialogRef.current?.click();
                               }}
                               disabled={hasIndicators}
                             />
