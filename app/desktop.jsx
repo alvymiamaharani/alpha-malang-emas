@@ -48,6 +48,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase/client";
 import { DeviceViewToggle } from "@/components/device-toggle";
+import { toast } from "sonner";
 
 // ============= Rubrics =============
 const RUBRICS = {
@@ -1133,15 +1134,69 @@ export default function EMASDesktopApp() {
     () => computeScores(weights, scores, indicators),
     [weights, scores, indicators],
   );
+  const [isLoadingLatest, setIsLoadingLatest] = useState(false);
+  const [currentAssessmentId, setCurrentAssessmentId] = useState(null);
+
+  // Auto-load latest data when email changes
+  useEffect(() => {
+    if (email && supabase) {
+      const loadLatest = async () => {
+        setIsLoadingLatest(true);
+        try {
+          const { data, error } = await supabase
+            .from("assessments")
+            .select("id, title, created_at, payload")
+            .eq("user_email", email)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single();
+
+          if (error && error.code !== "PGRST116") {
+            throw error;
+          }
+
+          if (data) {
+            const payload = data.payload || {};
+            setCurrentAssessmentId(data.id);
+            setScores(payload.scores || {});
+            setIndicators(payload.indicators || {});
+            if (payload.weights) setWeights(payload.weights);
+            setTitle(payload.title || data.title || "Penilaian EMAS");
+            setMessage("Data terbaru dimuat untuk email ini.");
+          } else {
+            setCurrentAssessmentId(null);
+            setScores({});
+            setIndicators({});
+            setWeights(DEFAULT_WEIGHTS);
+            setTitle("Penilaian EMAS");
+            setMessage(
+              "Tidak ada data sebelumnya untuk email ini. Mulai penilaian baru.",
+            );
+          }
+        } catch (e) {
+          toast.error(`Gagal memuat data terbaru: ${e?.message || e}`);
+          setMessage(`Gagal memuat data terbaru: ${e?.message || e}`);
+        } finally {
+          setIsLoadingLatest(false);
+        }
+      };
+
+      loadLatest();
+    }
+  }, [email]);
 
   async function saveToSupabase() {
     setMessage("");
     if (!supabase) {
-      setMessage("Supabase belum dikonfigurasi.");
+      toast.error("Database belum dikonfigurasi.");
+      setMessage("Database belum dikonfigurasi.");
       return;
     }
-    if (!email) {
-      setMessage("Masukkan email Anda terlebih dahulu.");
+    const emailRegex =
+      /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    if (!email || !emailRegex.test(email)) {
+      toast.error("Masukkan email Anda yang valid terlebih dahulu.");
+      setMessage("Masukkan email Anda yang valid terlebih dahulu.");
       return;
     }
 
@@ -1169,7 +1224,8 @@ export default function EMASDesktopApp() {
 
         if (updateError) throw updateError;
 
-        setMessage("Berhasil diupdate di Supabase");
+        toast.success("Berhasil diupdate di Database");
+        setMessage("Berhasil diupdate di Database");
       } else {
         // 2b. Insert kalau belum ada
         const { error: insertError } = await supabase
@@ -1183,9 +1239,11 @@ export default function EMASDesktopApp() {
 
         if (insertError) throw insertError;
 
-        setMessage("Berhasil disimpan ke Supabase");
+        toast.success("Berhasil disimpan ke Database");
+        setMessage("Berhasil disimpan ke Database");
       }
     } catch (e) {
+      toast.error(`Gagal menyimpan: ${e?.message || e}`);
       setMessage(`Gagal menyimpan: ${e?.message || e}`);
     } finally {
       loadHistory();
@@ -1195,10 +1253,12 @@ export default function EMASDesktopApp() {
 
   async function loadHistory() {
     if (!supabase) {
-      setMessage("Supabase belum dikonfigurasi.");
+      toast.error("Database belum dikonfigurasi.");
+      setMessage("Database belum dikonfigurasi.");
       return;
     }
     if (!email) {
+      toast.error("Masukkan email untuk memuat riwayat.");
       setMessage("Masukkan email untuk memuat riwayat.");
       return;
     }
@@ -1213,6 +1273,7 @@ export default function EMASDesktopApp() {
       if (error) throw error;
       setHistory(data || []);
     } catch (e) {
+      toast.error(`Gagal memuat riwayat: ${e?.message || e}`);
       setMessage(`Gagal memuat riwayat: ${e?.message || e}`);
     } finally {
       setLoadingHistory(false);
@@ -1228,7 +1289,17 @@ export default function EMASDesktopApp() {
         .eq("id", id);
       if (error) throw error;
       setHistory((h) => h.filter((x) => x.id !== id));
+      if (id === currentAssessmentId) {
+        setCurrentAssessmentId(null); // Reset if deleting current assessment
+        setScores({});
+        setIndicators({});
+        setWeights(DEFAULT_WEIGHTS);
+        setTitle("Penilaian EMAS");
+        toast.success("Penilaian berhasil dihapus.");
+        setMessage("Penilaian berhasil dihapus.");
+      }
     } catch (e) {
+      toast.error("Gagal menghapus entri.");
       setMessage("Gagal menghapus entri.");
     }
   }
@@ -1243,6 +1314,7 @@ export default function EMASDesktopApp() {
             scores,
             indicators,
             result,
+            assessment_id: currentAssessmentId, // Include ID in export
             exported_at: new Date().toISOString(),
           },
           null,
@@ -1254,7 +1326,7 @@ export default function EMASDesktopApp() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${safeName(title)}_EMAS.json`;
+    a.download = `${safeName(title)}_EMAS_${currentAssessmentId || "new"}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -1262,33 +1334,11 @@ export default function EMASDesktopApp() {
   function resetScores() {
     setScores({});
     setIndicators({});
-  }
-
-  function addIndicator(critKey) {
-    const list = indicators[critKey] || [];
-    const next = {
-      id: uid(),
-      name: `Indikator ${list.length + 1}`,
-      weight: 1,
-      score: 3,
-    };
-    setIndicators({ ...indicators, [critKey]: [...list, next] });
-  }
-
-  function updateIndicator(critKey, id, patch) {
-    const list = indicators[critKey] || [];
-    setIndicators({
-      ...indicators,
-      [critKey]: list.map((it) => (it.id === id ? { ...it, ...patch } : it)),
-    });
-  }
-
-  function removeIndicator(critKey, id) {
-    const list = indicators[critKey] || [];
-    setIndicators({
-      ...indicators,
-      [critKey]: list.filter((it) => it.id !== id),
-    });
+    setCurrentAssessmentId(null); // Reset ID for new assessment
+    setTitle("Penilaian EMAS");
+    setWeights(DEFAULT_WEIGHTS);
+    toast.success("Data berhasil direset.");
+    setMessage("Data direset. Mulai penilaian baru.");
   }
 
   return (
@@ -1370,6 +1420,11 @@ export default function EMASDesktopApp() {
                       {message}
                     </p>
                   )}
+                  {isLoadingLatest && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Memuat data terbaru...
+                    </p>
+                  )}
                 </div>
 
                 <Separator />
@@ -1415,11 +1470,14 @@ export default function EMASDesktopApp() {
                                 variant="secondary"
                                 onClick={() => {
                                   const payload = row.payload || {};
+                                  setCurrentAssessmentId(row.id);
                                   setScores(payload.scores || {});
                                   setIndicators(payload.indicators || {});
                                   if (payload.weights)
                                     setWeights(payload.weights);
                                   setTitle(payload.title || row.title || title);
+                                  toast.success("Data dimuat dari riwayat.");
+                                  setMessage("Data dimuat dari riwayat.");
                                 }}
                               >
                                 Muat

@@ -49,6 +49,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import Image from "next/image";
 import { DeviceViewToggle, useDeviceView } from "@/components/device-toggle";
 import EMASDesktopApp from "./desktop";
+import { toast } from "sonner";
 
 // ============= Rubrics =============
 const RUBRICS = {
@@ -1191,6 +1192,7 @@ function EMASMobileApp() {
             );
           }
         } catch (e) {
+          toast.error(`Gagal memuat data terbaru: ${e?.message || e}`);
           setMessage(`Gagal memuat data terbaru: ${e?.message || e}`);
         } finally {
           setIsLoadingLatest(false);
@@ -1204,11 +1206,15 @@ function EMASMobileApp() {
   async function saveToSupabase() {
     setMessage("");
     if (!supabase) {
-      setMessage("Supabase belum dikonfigurasi.");
+      toast.error("Database belum dikonfigurasi.");
+      setMessage("Database belum dikonfigurasi.");
       return;
     }
-    if (!email) {
-      setMessage("Masukkan email Anda terlebih dahulu.");
+    const emailRegex =
+      /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    if (!email || !emailRegex.test(email)) {
+      toast.error("Masukkan email Anda yang valid terlebih dahulu.");
+      setMessage("Masukkan email Anda yang valid terlebih dahulu.");
       return;
     }
 
@@ -1236,7 +1242,8 @@ function EMASMobileApp() {
 
         if (updateError) throw updateError;
 
-        setMessage("Berhasil diupdate di Supabase");
+        toast.success("Berhasil diupdate di Database");
+        setMessage("Berhasil diupdate di Database");
       } else {
         // 2b. Insert kalau belum ada
         const { error: insertError } = await supabase
@@ -1250,9 +1257,11 @@ function EMASMobileApp() {
 
         if (insertError) throw insertError;
 
-        setMessage("Berhasil disimpan ke Supabase");
+        toast.success("Berhasil disimpan ke Database");
+        setMessage("Berhasil disimpan ke Database");
       }
     } catch (e) {
+      toast.error(`Gagal menyimpan: ${e?.message || e}`);
       setMessage(`Gagal menyimpan: ${e?.message || e}`);
     } finally {
       loadHistory();
@@ -1262,10 +1271,12 @@ function EMASMobileApp() {
 
   async function loadHistory() {
     if (!supabase) {
-      setMessage("Supabase belum dikonfigurasi.");
+      toast.error("Database belum dikonfigurasi.");
+      setMessage("Database belum dikonfigurasi.");
       return;
     }
     if (!email) {
+      toast.error("Masukkan email untuk memuat riwayat.");
       setMessage("Masukkan email untuk memuat riwayat.");
       return;
     }
@@ -1280,6 +1291,7 @@ function EMASMobileApp() {
       if (error) throw error;
       setHistory(data || []);
     } catch (e) {
+      toast.error(`Gagal memuat riwayat: ${e?.message || e}`);
       setMessage(`Gagal memuat riwayat: ${e?.message || e}`);
     } finally {
       setLoadingHistory(false);
@@ -1301,9 +1313,11 @@ function EMASMobileApp() {
         setIndicators({});
         setWeights(DEFAULT_WEIGHTS);
         setTitle("Penilaian EMAS");
-        setMessage("Penilaian dihapus. Mulai penilaian baru.");
+        toast.success("Penilaian berhasil dihapus.");
+        setMessage("Penilaian berhasil dihapus.");
       }
     } catch (e) {
+      toast.error("Gagal menghapus entri.");
       setMessage("Gagal menghapus entri.");
     }
   }
@@ -1340,34 +1354,9 @@ function EMASMobileApp() {
     setIndicators({});
     setCurrentAssessmentId(null); // Reset ID for new assessment
     setTitle("Penilaian EMAS");
+    setWeights(DEFAULT_WEIGHTS);
+    toast.success("Data berhasil direset.");
     setMessage("Data direset. Mulai penilaian baru.");
-  }
-
-  function addIndicator(critKey) {
-    const list = indicators[critKey] || [];
-    const next = {
-      id: uid(),
-      name: `Indikator ${list.length + 1}`,
-      weight: 1,
-      score: 3,
-    };
-    setIndicators({ ...indicators, [critKey]: [...list, next] });
-  }
-
-  function updateIndicator(critKey, id, patch) {
-    const list = indicators[critKey] || [];
-    setIndicators({
-      ...indicators,
-      [critKey]: list.map((it) => (it.id === id ? { ...it, ...patch } : it)),
-    });
-  }
-
-  function removeIndicator(critKey, id) {
-    const list = indicators[critKey] || [];
-    setIndicators({
-      ...indicators,
-      [critKey]: list.filter((it) => it.id !== id),
-    });
   }
 
   return (
@@ -1505,6 +1494,7 @@ function EMASMobileApp() {
                                   if (payload.weights)
                                     setWeights(payload.weights);
                                   setTitle(payload.title || row.title || title);
+                                  toast.success("Data dimuat dari riwayat.");
                                   setMessage("Data dimuat dari riwayat.");
                                 }}
                               >
