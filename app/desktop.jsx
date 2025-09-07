@@ -27,7 +27,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { createClient } from "@supabase/supabase-js";
 import { motion } from "framer-motion";
 import {
   Menu,
@@ -47,8 +46,8 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import Image from "next/image";
-import { DeviceViewToggle, useDeviceView } from "@/components/device-toggle";
-import EMASDesktopApp from "./desktop";
+import { supabase } from "@/lib/supabase/client";
+import { DeviceViewToggle } from "@/components/device-toggle";
 
 // ============= Rubrics =============
 const RUBRICS = {
@@ -695,14 +694,6 @@ const DEFAULT_WEIGHTS = [
   },
 ];
 
-// Supabase client (browser)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase =
-  supabaseUrl && supabaseAnonKey
-    ? createClient(supabaseUrl, supabaseAnonKey)
-    : null;
-
 // ==== TUJUAN per kriteria (direvisi lebih lengkap dalam bentuk poin, ringkas, sesuai dokumen) ====
 const TUJUANS = {
   // ===== P1 Tata Kelola =====
@@ -1126,16 +1117,7 @@ function useLocalStorage(key, initial) {
   return [state, setState];
 }
 
-export default function Page() {
-  const { viewMode, isHydrated } = useDeviceView();
-  return !isHydrated ? null : viewMode === "desktop" ? (
-    <EMASDesktopApp />
-  ) : (
-    <EMASMobileApp />
-  );
-}
-
-function EMASMobileApp() {
+export default function EMASDesktopApp() {
   const [email, setEmail] = useLocalStorage("emas_email", "");
   const [title, setTitle] = useState("Penilaian EMAS");
   const [scores, setScores] = useLocalStorage("emas_scores", {});
@@ -1279,7 +1261,7 @@ function EMASMobileApp() {
     <div className="min-h-dvh w-full bg-background text-foreground pb-24">
       {/* Top App Bar */}
       <header className="sticky top-0 z-30 backdrop-blur supports-[backdrop-filter]:bg-background/70 border-b">
-        <div className="mx-auto max-w-md px-3 py-3 flex items-center gap-3">
+        <div className="mx-auto max-w-screen-2xl px-6 py-3 flex items-center gap-3">
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="Menu">
@@ -1437,7 +1419,7 @@ function EMASMobileApp() {
           </Sheet>
 
           <div className="flex-1 flex justify-between  items-center gap-2">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               <Image
                 src="/logo-icmi.png"
                 alt="logo"
@@ -1458,7 +1440,7 @@ function EMASMobileApp() {
       </header>
 
       {/* Content */}
-      <main className="mx-auto max-w-md px-3 py-3 space-y-4">
+      <main className="mx-auto max-w-screen-2xl px-6 py-3 space-y-4">
         {/* Summary Card */}
         <Card className="shadow-sm">
           <CardHeader className="pb-2">
@@ -1467,7 +1449,7 @@ function EMASMobileApp() {
                 <BarChart4 className="h-5 w-5" /> Ringkasan
               </span>
               <span className="text-xs text-muted-foreground">
-                Mobile · Weighted
+                Desktop · Weighted
               </span>
             </CardTitle>
           </CardHeader>
@@ -1518,7 +1500,7 @@ function EMASMobileApp() {
                   <div className="text-xs text-muted-foreground">
                     Bobot prinsip: {(P.weight * 100).toFixed(0)}%
                   </div>
-                  <div className="grid grid-cols-1 gap-3">
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     {P.criteria.map((C) => {
                       const key = `${P.code}|${C.code}`;
                       const hasIndicators = (indicators[key]?.length || 0) > 0;
@@ -1542,7 +1524,7 @@ function EMASMobileApp() {
                                   Tujuan
                                 </Button>
                               </DialogTrigger>
-                              <DialogContent className="max-w-md">
+                              <DialogContent className="max-w-screen-2xl">
                                 <DialogHeader>
                                   <DialogTitle>
                                     Tujuan — {C.code} {C.name}
@@ -1573,7 +1555,7 @@ function EMASMobileApp() {
                                   Rubrik
                                 </Button>
                               </DialogTrigger>
-                              <DialogContent className="max-w-md">
+                              <DialogContent className="max-w-screen-2xl">
                                 <DialogHeader>
                                   <DialogTitle>
                                     Rubrik Indikator — {C.code} {C.name}
@@ -1682,7 +1664,7 @@ function EMASMobileApp() {
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 border-t bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70 z-40">
-        <div className="mx-auto max-w-md px-3 py-2 grid grid-cols-3 gap-2">
+        <div className="mx-auto max-w-screen-2xl px-6 py-2 grid grid-cols-3 gap-2">
           <Button variant="secondary" className="gap-2" onClick={exportJson}>
             <Download className="h-4 w-4" /> Ekspor
           </Button>
