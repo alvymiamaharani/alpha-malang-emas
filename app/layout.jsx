@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import ChatBot from "@/components/chat-bot";
+import FloatingNavigation from "@/components/floating-navigation";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,6 +29,7 @@ export default function RootLayout({ children }) {
         <ThemeProvider>
           {children}
           <ChatBot />
+          <FloatingNavigation />
           <Toaster />
         </ThemeProvider>
       </body>
