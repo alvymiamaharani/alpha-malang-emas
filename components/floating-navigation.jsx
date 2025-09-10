@@ -5,14 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Home, User, Settings, FileText, Mail, Menu, X } from "lucide-react";
+import { Home, Menu, X, Users } from "lucide-react";
 
 const menuItems = [
-  { title: "Home", path: "/", icon: Home },
-  { title: "About", path: "/about", icon: User },
-  { title: "Blog", path: "/blog", icon: FileText },
-  { title: "Contact", path: "/contact", icon: Mail },
-  { title: "Settings", path: "/settings", icon: Settings },
+  { title: "Umum", path: "/", icon: Users },
+  { title: "Desa", path: "/desa", icon: Home },
 ];
 
 export default function FloatingNavigation() {

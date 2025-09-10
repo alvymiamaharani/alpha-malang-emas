@@ -50,6 +50,7 @@ import Image from "next/image";
 import { DeviceViewToggle, useDeviceView } from "@/components/device-toggle";
 import EMASDesktopApp from "./desktop";
 import { toast } from "sonner";
+import NavDropdown from "@/components/nav-dropdown";
 
 // ============= Rubrics =============
 const RUBRICS = {
@@ -1544,6 +1545,7 @@ function EMASMobileApp() {
             <div className="flex items-center gap-1">
               <ThemeToggle />
               <DeviceViewToggle />
+              <NavDropdown />
             </div>
           </div>
         </div>

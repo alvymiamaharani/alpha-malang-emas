@@ -29,7 +29,6 @@ export default function RootLayout({ children }) {
         <ThemeProvider>
           {children}
           <ChatBot />
-          <FloatingNavigation />
           <Toaster />
         </ThemeProvider>
       </body>

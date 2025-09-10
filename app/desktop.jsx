@@ -49,6 +49,7 @@ import Image from "next/image";
 import { supabase } from "@/lib/supabase/client";
 import { DeviceViewToggle } from "@/components/device-toggle";
 import { toast } from "sonner";
+import NavDropdown from "@/components/nav-dropdown";
 
 // ============= Rubrics =============
 const RUBRICS = {
@@ -1526,6 +1527,7 @@ export default function EMASDesktopApp() {
             <div className="flex items-center gap-1">
               <ThemeToggle />
               <DeviceViewToggle />
+              <NavDropdown />
             </div>
           </div>
         </div>
