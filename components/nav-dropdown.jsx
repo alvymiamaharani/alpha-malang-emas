@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Home, Users, ChevronDown, Slash, SquareSlash } from "lucide-react";
+import { Home, Users, SquareSlash } from "lucide-react";
 
 const menuItems = [
   { title: "Umum", path: "/", icon: Users },
@@ -25,7 +25,6 @@ export default function NavDropdown() {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="flex items-center gap-2">
           <SquareSlash className="h-4 w-4" />
-          <ChevronDown className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
 
